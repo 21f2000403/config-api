@@ -40,10 +40,11 @@ def convert_value(key, value):
     return str(value)
 
 
+
 def load_config():
     config = DEFAULTS.copy()
 
-    # Layer 2: environment-specific YAML
+    # Layer 2: YAML file
     environment = os.getenv("APP_ENV", "development")
     yaml_file = Path(f"config.{environment}.yaml")
 
@@ -66,12 +67,21 @@ def load_config():
             config[config_key] = file_env[env_key]
 
     # Layer 4: OS environment variables
-    # APP_PORT -> port, APP_LOG_LEVEL -> log_level, etc.
-    for env_key, value in os.environ.items():
-        if env_key.startswith("APP_"):
-            config_key = env_key[4:].lower().replace("_", "_")
-            if config_key in config:
-                config[config_key] = value
+    os_mapping = {
+        "APP_PORT": "port",
+        "APP_WORKERS": "workers",
+        "APP_DEBUG": "debug",
+        "APP_LOG_LEVEL": "log_level",
+        "APP_API_KEY": "api_key",
+    }
+
+    for env_key, config_key in os_mapping.items():
+        if os.getenv(env_key) is not None:
+            config[config_key] = os.environ[env_key]
+
+    # Also support NUM_WORKERS if provided by the OS
+    if os.getenv("NUM_WORKERS") is not None:
+        config["workers"] = os.environ["NUM_WORKERS"]
 
     return config
 
